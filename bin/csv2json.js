@@ -33,17 +33,21 @@ function main() {
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--help' || a === '-h') {
+    if (!noMoreFlags && a === '--') { noMoreFlags = true; continue; }
+    if (!noMoreFlags && (a === '--help' || a === '-h')) {
       console.log(usage);
       return;
     }
-    if (!noMoreFlags && a === '--') { noMoreFlags = true; continue; }
     if (!noMoreFlags && a === '--header') header = true;
     else if (!noMoreFlags && (a === '--delimiter' || a === '-d')) delimiter = argValue(argv, i++, a);
     else if (!noMoreFlags && a.startsWith('--')) {
       console.error(`Unknown option: ${a}`);
       process.exit(2);
-    } else file = a;
+    } else if (file === null) file = a;
+    else {
+      console.error(`Unexpected extra argument: ${a}`);
+      process.exit(2);
+    }
   }
 
   if (delimiter === 'tab') delimiter = '\t';

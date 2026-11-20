@@ -24,7 +24,10 @@ stringify([{ a: 1, b: 2 }]);                  // 'a,b\n1,2'
 `parse` accepts both `\n` and `\r\n` line endings and ignores a trailing
 newline. It throws an `Error` (including the line number) for unclosed quoted
 fields or, in header mode, rows with a different column count than the header.
-`stringify` quotes a field only when needed and has no trailing newline.
+`stringify` quotes a field only when needed and has no trailing newline. It
+round-trips with `parse` for arrays of strings; note that a row whose only
+field is empty is serialised as `""` (a bare empty field would be
+indistinguishable from empty input or a trailing newline).
 
 CLI (`bin/csv2json.js`):
 

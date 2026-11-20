@@ -90,8 +90,13 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
           `Row on line ${startLine} has ${r.length} fields, expected ${head.length}`,
         );
       }
+      // Define explicitly so header names like "__proto__" are representable.
       const obj = {};
-      head.forEach((name, j) => { obj[name] = r[j]; });
+      head.forEach((name, j) => {
+        Object.defineProperty(obj, name, {
+          value: r[j], enumerable: true, writable: true, configurable: true,
+        });
+      });
       return obj;
     });
   }
@@ -122,7 +127,7 @@ export function stringify(rows, { delimiter = ',' } = {}) {
         }
         headerKeys = seen;
       }
-      return headerKeys.map((k) => (k in row ? row[k] : ''));
+      return headerKeys.map((k) => (Object.hasOwn(row, k) ? row[k] : ''));
     }
     return [row];
   });
@@ -139,5 +144,14 @@ export function stringify(rows, { delimiter = ',' } = {}) {
     return s;
   };
 
-  return outRows.map((row) => row.map(esc).join(delimiter)).join('\n');
+  // Join rows. A row with no fields, or whose only field is empty, is
+  // serialised as `""` so that `parse(stringify(x))` round-trips: a bare ''
+  // would be indistinguishable from empty input (which parses to []) or from
+  // a trailing newline.
+  return outRows
+    .map((row) => {
+      if (row.length === 0 || (row.length === 1 && esc(row[0]) === '')) return '""';
+      return row.map(esc).join(delimiter);
+    })
+    .join('\n');
 }

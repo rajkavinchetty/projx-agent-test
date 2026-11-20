@@ -101,6 +101,24 @@ describe('stringify', () => {
     const rows = [['a', 'b,c'], ['say "hi"', 'multi\nline'], ['', 'x']];
     assert.deepEqual(parse(stringify(rows)), rows);
   });
+
+  test('round-trip for a row whose only field is empty', () => {
+    assert.deepEqual(parse(stringify([['']])), [['']]);
+    assert.deepEqual(parse(stringify([['a'], ['']])), [['a'], ['']]);
+    assert.deepEqual(parse(stringify([['a'], []])), [['a'], ['']]);
+    assert.equal(stringify([['']]), '""');
+  });
+
+  test('header name "__proto__" is kept', () => {
+    const rows = parse('__proto__,a\nv,1', { header: true });
+    const expected = Object.fromEntries([['__proto__', 'v'], ['a', '1']]);
+    assert.deepEqual(rows, [expected]);
+    assert.equal(Object.hasOwn(rows[0], '__proto__'), true);
+  });
+
+  test('inherited keys are not stringified from the prototype', () => {
+    assert.equal(stringify([{ toString: 'x' }, { a: 1 }]), 'toString,a\nx,\n,1');
+  });
 });
 
 describe('csv2json CLI', () => {
@@ -148,5 +166,17 @@ describe('csv2json CLI', () => {
     const r = run(['--help'], '');
     assert.equal(r.status, 0);
     assert.match(r.stdout, /Usage:/);
+  });
+
+  test('--help after "--" is treated as a file path', () => {
+    const r = run(['--', '--help'], '');
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /Cannot read file/);
+  });
+
+  test('extra positional argument exits with code 2', () => {
+    const r = run(['a.csv', 'b.csv'], '');
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /extra argument/);
   });
 });
