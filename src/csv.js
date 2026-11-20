@@ -147,7 +147,7 @@ export function stringify(rows, { delimiter = ',' } = {}) {
     if (value === null || value === undefined) return '';
     let s = String(value);
     if (s.includes(quoteChar)) s = s.replaceAll(quoteChar, '""');
-    if (s.includes(delimiter) || s.includes('"') || s.includes('\r') || s.includes('\n')) {
+    if (s.startsWith('\uFEFF') || s.includes(delimiter) || s.includes('"') || s.includes('\r') || s.includes('\n')) {
       s = `"${s}"`;
     }
     return s;
