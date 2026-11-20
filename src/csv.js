@@ -16,6 +16,7 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
   let fieldWasQuoted = false;
   let started = false; // any char consumed for the current field
   let line = 1;
+  let quoteStartLine = 1;
   let rowStartLine = 1;
   let i = 0;
 
@@ -32,11 +33,12 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
     rowStartLine = line;
   };
 
-  if (text === '' || text == null) return header ? [] : [];
+  if (text == null || text === '') return [];
+  // Strip a leading UTF-8 BOM, which Excel/Windows tools often add.
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
 
   while (i < text.length) {
     const ch = text[i];
-    if (ch === '\n') line++;
 
     if (inQuotes) {
       if (ch === '"') {
@@ -45,6 +47,8 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
         i++;
         continue;
       }
+      // Count newlines inside quoted fields (CRLF counts as one line).
+      if (ch === '\n' || (ch === '\r' && text[i + 1] !== '\n')) line++;
       field += ch;
       i++;
       continue;
@@ -52,6 +56,7 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
 
     if (ch === '"' && !started) {
       inQuotes = true;
+      quoteStartLine = line;
       fieldWasQuoted = true;
       started = true;
       i++;
@@ -59,8 +64,10 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
     }
     if (ch === delimiter) { pushField(); i++; continue; }
     if (ch === '\r' || ch === '\n') {
-      // Handle CRLF as one terminator (and one line).
-      if (ch === '\r' && text[i + 1] === '\n') { i++; line++; }
+      // Treat CRLF as one row terminator (and one line); a lone \r also
+      // terminates a row and counts as a line.
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      line++;
       pushRow();
       i++;
       // A trailing newline must not create an empty row.
@@ -73,7 +80,9 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
   }
 
   if (inQuotes) {
-    throw new Error(`Unclosed quoted field on line ${line}`);
+    throw new Error(
+      `Unclosed quoted field: quote opened on line ${quoteStartLine} is not closed before end of input (line ${line})`,
+    );
   }
   // Flush the last field/row unless the input ended with a row terminator.
   if (field !== '' || row.length > 0 || started || fieldWasQuoted) {

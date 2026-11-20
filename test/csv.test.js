@@ -59,6 +59,28 @@ describe('parse', () => {
     assert.throws(() => parse('a\r\nb\r\n"x'), /line 3/);
   });
 
+  test('unclosed quote error reports the line where the quote opened', () => {
+    // The quote opens on line 2 and is never closed, even though the field
+    // spans to line 3 (EOF).
+    assert.throws(() => parse('a,b\n"x\ny'), /quote opened on line 2/);
+  });
+
+  test('lone CR line endings are counted as lines', () => {
+    assert.deepEqual(parse('a,b\r1,2\r'), [['a', 'b'], ['1', '2']]);
+    assert.throws(() => parse('a,b\r"x'), /quote opened on line 2/);
+    assert.throws(
+      () => parse('a,b\r1,2,3', { header: true }),
+      /line 2/,
+    );
+  });
+
+  test('leading UTF-8 BOM is stripped', () => {
+    assert.deepEqual(parse('\uFEFFa,b'), [['a', 'b']]);
+    assert.deepEqual(parse('\uFEFFname,age\nAda,36', { header: true }), [
+      { name: 'Ada', age: '36' },
+    ]);
+  });
+
   test('header column-count mismatch error', () => {
     assert.throws(
       () => parse('a,b\n1,2,3', { header: true }),
@@ -160,6 +182,12 @@ describe('csv2json CLI', () => {
     const r = run([], 'a\n"unclosed');
     assert.equal(r.status, 1);
     assert.match(r.stderr, /line/);
+  });
+
+  test('CLI strips a leading UTF-8 BOM', () => {
+    const r = run(['--header'], '\uFEFFname,age\nAda,36\n');
+    assert.equal(r.status, 0);
+    assert.deepEqual(JSON.parse(r.stdout), [{ name: 'Ada', age: '36' }]);
   });
 
   test('--help prints usage', () => {
