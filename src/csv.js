@@ -16,6 +16,7 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
   let fieldWasQuoted = false;
   let started = false; // any char consumed for the current field
   let line = 1;
+  let rowStartLine = 1;
   let i = 0;
 
   const pushField = () => {
@@ -26,8 +27,9 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
   };
   const pushRow = () => {
     pushField();
-    rows.push(row);
+    rows.push({ startLine: rowStartLine, fields: row });
     row = [];
+    rowStartLine = line;
   };
 
   if (text === '' || text == null) return header ? [] : [];
@@ -35,7 +37,6 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
   while (i < text.length) {
     const ch = text[i];
     if (ch === '\n') line++;
-    else if (ch === '\r' && text[i + 1] === '\n') { /* counted at \n */ }
 
     if (inQuotes) {
       if (ch === '"') {
@@ -58,8 +59,8 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
     }
     if (ch === delimiter) { pushField(); i++; continue; }
     if (ch === '\r' || ch === '\n') {
-      // Handle CRLF as one terminator.
-      if (ch === '\r' && text[i + 1] === '\n') i++;
+      // Handle CRLF as one terminator (and one line).
+      if (ch === '\r' && text[i + 1] === '\n') { i++; line++; }
       pushRow();
       i++;
       // A trailing newline must not create an empty row.
@@ -81,12 +82,12 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
 
   if (header) {
     if (rows.length === 0) return [];
-    const head = rows[0];
-    return rows.slice(1).map((r, idx) => {
+    const head = rows[0].fields;
+    return rows.slice(1).map(({ startLine, fields: r }) => {
       if (r.length !== head.length) {
-        // Line number: 1-based, header is line 1.
+        // Line number: 1-based physical line where the row starts.
         throw new Error(
-          `Row ${idx + 2} on line ${idx + 2} has ${r.length} fields, expected ${head.length}`,
+          `Row on line ${startLine} has ${r.length} fields, expected ${head.length}`,
         );
       }
       const obj = {};
@@ -94,7 +95,7 @@ export function parse(text, { header = false, delimiter = ',' } = {}) {
       return obj;
     });
   }
-  return rows;
+  return rows.map((r) => r.fields);
 }
 
 /**

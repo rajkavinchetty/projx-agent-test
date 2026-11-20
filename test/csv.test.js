@@ -54,10 +54,22 @@ describe('parse', () => {
     assert.throws(() => parse('a,b\n"x'), /line 2/);
   });
 
+  test('unclosed quote error line number with CRLF input', () => {
+    assert.throws(() => parse('a,b\r\n"x'), /line 2/);
+    assert.throws(() => parse('a\r\nb\r\n"x'), /line 3/);
+  });
+
   test('header column-count mismatch error', () => {
     assert.throws(
       () => parse('a,b\n1,2,3', { header: true }),
       (err) => err instanceof Error && /fields/.test(err.message),
+    );
+  });
+
+  test('header mismatch line number accounts for newlines inside quoted fields', () => {
+    assert.throws(
+      () => parse('a,b\n"x\ny",1\n2,3,4', { header: true }),
+      (err) => err instanceof Error && /line 4/.test(err.message),
     );
   });
 });

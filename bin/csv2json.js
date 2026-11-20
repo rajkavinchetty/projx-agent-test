@@ -10,7 +10,9 @@ Convert CSV to JSON. Reads from <file>, or stdin when no file is given.
 Options:
   --header            Treat the first row as a header; output objects.
   --delimiter <char>  Field delimiter (default ","). Use "tab" for tabs.
-  --help              Show this help.`;
+  --help              Show this help.
+
+Use "--" to stop option parsing and treat the rest as file paths.`;
 
 function argValue(argv, i, flag) {
   const v = argv[i + 1];
@@ -27,16 +29,18 @@ function main() {
   let delimiter = ',';
   let file = null;
 
+  let noMoreFlags = false;
+
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') {
       console.log(usage);
       return;
     }
-    if (a === '--header') header = true;
-    else if (a === '--delimiter' || a === '-d') delimiter = argValue(argv, i++, a);
-    else if (a === '--') file = argv[i + 1] ?? null;
-    else if (a.startsWith('--')) {
+    if (!noMoreFlags && a === '--') { noMoreFlags = true; continue; }
+    if (!noMoreFlags && a === '--header') header = true;
+    else if (!noMoreFlags && (a === '--delimiter' || a === '-d')) delimiter = argValue(argv, i++, a);
+    else if (!noMoreFlags && a.startsWith('--')) {
       console.error(`Unknown option: ${a}`);
       process.exit(2);
     } else file = a;
