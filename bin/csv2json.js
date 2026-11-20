@@ -11,6 +11,7 @@ Options:
   --header            Treat the first row as a header; output objects.
   --delimiter <char>  Field delimiter (default ","). Use "tab" for tabs.
   --help              Show this help.
+  --version, -v       Print the version and exit.
 
 Use "--" to stop option parsing and treat the rest as file paths.`;
 
@@ -34,6 +35,11 @@ function main() {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (!noMoreFlags && a === '--') { noMoreFlags = true; continue; }
+    if (!noMoreFlags && (a === '--version' || a === '-v')) {
+      const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+      console.log(pkg.version);
+      return;
+    }
     if (!noMoreFlags && (a === '--help' || a === '-h')) {
       console.log(usage);
       return;

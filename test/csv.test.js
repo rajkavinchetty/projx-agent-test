@@ -5,6 +5,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFileSync as _readFileSync } from 'node:fs';
 import { parse, stringify } from '../src/csv.js';
 
 const BIN = fileURLToPath(new URL('../bin/csv2json.js', import.meta.url));
@@ -194,6 +195,15 @@ describe('csv2json CLI', () => {
     const r = run(['--help'], '');
     assert.equal(r.status, 0);
     assert.match(r.stdout, /Usage:/);
+  });
+
+  test('--version prints the package version', () => {
+    const pkg = JSON.parse(_readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    for (const flag of ['--version', '-v']) {
+      const r = run([flag], '');
+      assert.equal(r.status, 0);
+      assert.equal(r.stdout.trim(), pkg.version);
+    }
   });
 
   test('--help after "--" is treated as a file path', () => {

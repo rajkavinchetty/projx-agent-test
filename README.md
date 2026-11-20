@@ -40,5 +40,6 @@ node bin/csv2json.js --delimiter ";" data.csv       # semicolon-separated
 ```
 
 On a parse error the message is written to stderr and the process exits with
-code 1. `--help` prints usage.
+code 1. `--help` prints usage. `--version` (or `-v`) prints the package
+version and exits 0.
 
