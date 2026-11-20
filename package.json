@@ -1,0 +1,11 @@
+{
+  "name": "projx-agent-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A tiny project for testing the ProjX AI agent.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
