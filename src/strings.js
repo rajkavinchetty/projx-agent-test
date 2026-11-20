@@ -7,6 +7,15 @@ export function titleCase(text) {
     .join(' ');
 }
 
+/** Convert text to a URL-friendly slug. */
+export function slugify(text) {
+  return String(text)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 /** Shorten text to at most `max` characters, ending with "…" when cut. */
 export function truncate(text, max) {
   const s = String(text);
